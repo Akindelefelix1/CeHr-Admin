@@ -33,6 +33,16 @@ export async function listOrganizations():Promise<OrganizationDetail[]> {
   if(isPreviewMode){await wait();return previewOrganizations.map((x,i)=>normalizeOrganization({...x,departments:5+i,branches:2+(i%3),pendingInvites:i%4,setupCompleted:i!==5,phone:'+234 800 000 0000',website:`https://${x.name.toLowerCase().replaceAll(' ','')}.com`,timezone:'Africa/Lagos',modules:['Core HR','Attendance','Payroll','Documents']},i));}
   const data=await apiRequest<any>('/super-admin/organizations?limit=100'); return (data.organizations || data.data || data).map(normalizeOrganization);
 }
+export async function createOrganization(input:{name:string;email:string;industry?:string;plan?:string}):Promise<OrganizationDetail> {
+  if(isPreviewMode){await wait();return normalizeOrganization({id:`ORG-${Date.now()}`,name:input.name,email:input.email,industry:input.industry,plan:input.plan,status:'Trial',joined:new Date().toISOString(),health:100,admin:input.email,pendingInvites:1});}
+  const data=await apiRequest<any>('/super-admin/organizations',{method:'POST',body:JSON.stringify(input)});
+  return normalizeOrganization(data.organization || data.data || data);
+}
+export async function updateOrganizationStatus(id:string,status:'Active'|'Suspended'):Promise<OrganizationDetail> {
+  if(isPreviewMode){await wait();return normalizeOrganization({id,status});}
+  const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}/status`,{method:'PATCH',body:JSON.stringify({status})});
+  return normalizeOrganization(data.organization || data.data || data);
+}
 export async function getOrganization(id:string):Promise<OrganizationDetail>{
   if(isPreviewMode){await wait(250);const item=previewOrganizations.find(x=>x.id===id);if(!item)throw new Error('Organization not found.');return normalizeOrganization({...item,departments:8,branches:3,pendingInvites:4,setupCompleted:true,phone:'+234 800 000 0000',website:'https://example.com',timezone:'Africa/Lagos',description:'A growing organization using CeHR to manage its people operations.',modules:['Core HR','Attendance','Payroll','Recruitment','Documents']});}
   const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}`); return normalizeOrganization(data.organization || data.data || data);
