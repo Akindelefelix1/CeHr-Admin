@@ -1,6 +1,6 @@
 # CeHR Control
 
-Super-admin interface for managing the CeHR platform. This phase is intentionally UI-first: all data is typed mock data and the interaction boundaries are ready to be connected to the NestJS backend after approval.
+Super-admin interface for managing the CeHR platform. Authentication, organizations, administrator access, and broadcasts use a typed API boundary. Without `VITE_API_BASE_URL`, the project runs in labelled UI-preview mode.
 
 ## Run locally
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-The app opens on `http://localhost:5174/dashboard`. Requests to `/` redirect there.
+The app opens on `http://localhost:5174/login`. Requests to `/` redirect there, and all administration routes require a session.
 
 ## Production check
 
@@ -26,6 +26,10 @@ npm run build
 - Billing, collections, and transaction monitoring
 - Platform growth, plan mix, and module adoption analytics
 - Support queue, audit logs, and platform settings
+- Super-admin login and protected routing
+- Administrator roles and granular permissions
+- Email/in-app broadcasts to all or selected organizations
+- Live organization list and full organization details
 
 ## Structure
 
@@ -42,4 +46,4 @@ src/
 
 ## API integration plan
 
-Add `src/services/http.ts` for the configured API client and one service module per feature area. Keep the page contracts aligned to `src/types`, map backend DTOs at the service boundary, and replace the exports in `src/data/mockData.ts` incrementally. Authentication, authorization, and mutations should be implemented only after the UI and admin permission model are approved.
+Production builds use `VITE_API_BASE_URL=https://new-cehr-be-bkla.onrender.com`. The required server contract is documented in `SUPER_ADMIN_API_CONTRACT.md`; the matching NestJS module and database migration are implemented in `New-CeHR-BE`.

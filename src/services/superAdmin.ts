@@ -1,0 +1,47 @@
+import type { Organization } from '../types';
+import { organizations as previewOrganizations } from '../data/mockData';
+import { apiRequest, isPreviewMode } from './api';
+
+export interface AdminIdentity { id:string; name:string; email:string; role:string; permissions:string[] }
+export interface AdminAccount extends AdminIdentity { status:'Active'|'Invited'|'Suspended'; lastActive:string }
+export interface OrganizationDetail extends Organization {
+  phone?:string; website?:string; address?:string; description?:string; createdAt?:string;
+  departments?:number; branches?:number; activeEmployees?:number; pendingInvites?:number;
+  setupCompleted?:boolean; timezone?:string; modules?:string[];
+}
+
+const wait = (ms=450) => new Promise(resolve => window.setTimeout(resolve,ms));
+const normalizeOrganization = (raw: Record<string,any>, index=0): OrganizationDetail => ({
+  id:String(raw.id || raw.organizationId || `ORG-${index+1}`), name:String(raw.name || 'Unnamed organization'),
+  initials:String(raw.initials || raw.name?.split(/\s+/).map((x:string)=>x[0]).join('').slice(0,2) || 'OR').toUpperCase(),
+  industry:String(raw.industry || 'Not specified'), employees:Number(raw.employees ?? raw.employeeCount ?? raw._count?.employees ?? 0),
+  plan:raw.plan || raw.subscription?.plan || 'Starter', mrr:Number(raw.mrr ?? raw.subscription?.mrr ?? 0), status:raw.status || 'Active',
+  joined:String(raw.joined || (raw.createdAt ? new Date(raw.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—')),
+  health:Number(raw.health ?? 80), admin:String(raw.admin || raw.ownerName || raw.name || 'Organization admin'), email:String(raw.email || ''),
+  location:String(raw.location || [raw.city,raw.state,raw.country].filter(Boolean).join(', ') || 'Not provided'), lastActive:String(raw.lastActive || '—'),
+  phone:raw.phone, website:raw.website, address:raw.address, description:raw.description, createdAt:raw.createdAt,
+  departments:Number(raw.departments ?? raw._count?.departments ?? 0), branches:Number(raw.branches ?? raw._count?.branches ?? 0),
+  activeEmployees:Number(raw.activeEmployees ?? raw._count?.employees ?? raw.employees ?? 0), pendingInvites:Number(raw.pendingInvites ?? raw._count?.employeeInvites ?? 0),
+  setupCompleted:Boolean(raw.setupCompleted ?? raw.setupCompletedAt), timezone:raw.timezone, modules:raw.modules || [],
+});
+
+export async function loginSuperAdmin(email:string,password:string) {
+  if (isPreviewMode) { await wait(); if(password.length<6) throw new Error('Password must contain at least 6 characters.'); return {accessToken:'preview-session',admin:{id:'preview-admin',name:'Adeola Ogunleye',email,role:'Super administrator',permissions:['*']}}; }
+  return apiRequest<{accessToken:string;admin:AdminIdentity}>('/super-admin/auth/login',{method:'POST',body:JSON.stringify({email,password})});
+}
+export async function listOrganizations():Promise<OrganizationDetail[]> {
+  if(isPreviewMode){await wait();return previewOrganizations.map((x,i)=>normalizeOrganization({...x,departments:5+i,branches:2+(i%3),pendingInvites:i%4,setupCompleted:i!==5,phone:'+234 800 000 0000',website:`https://${x.name.toLowerCase().replaceAll(' ','')}.com`,timezone:'Africa/Lagos',modules:['Core HR','Attendance','Payroll','Documents']},i));}
+  const data=await apiRequest<any>('/super-admin/organizations?limit=100'); return (data.organizations || data.data || data).map(normalizeOrganization);
+}
+export async function getOrganization(id:string):Promise<OrganizationDetail>{
+  if(isPreviewMode){await wait(250);const item=previewOrganizations.find(x=>x.id===id);if(!item)throw new Error('Organization not found.');return normalizeOrganization({...item,departments:8,branches:3,pendingInvites:4,setupCompleted:true,phone:'+234 800 000 0000',website:'https://example.com',timezone:'Africa/Lagos',description:'A growing organization using CeHR to manage its people operations.',modules:['Core HR','Attendance','Payroll','Recruitment','Documents']});}
+  const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}`); return normalizeOrganization(data.organization || data.data || data);
+}
+export async function listAdmins():Promise<AdminAccount[]> {
+  if(isPreviewMode){await wait();return [{id:'1',name:'Adeola Ogunleye',email:'adeola@cehr.com',role:'Super administrator',permissions:['*'],status:'Active',lastActive:'Now'},{id:'2',name:'Moses Eze',email:'moses@cehr.com',role:'Operations admin',permissions:['organizations.read','organizations.manage','notifications.send','support.manage'],status:'Active',lastActive:'18 min ago'},{id:'3',name:'Chidinma Okafor',email:'chidinma@cehr.com',role:'Billing admin',permissions:['billing.read','billing.manage','analytics.read'],status:'Invited',lastActive:'Never'}];}
+  const data=await apiRequest<any>('/super-admin/admins'); return data.admins || data.data || data;
+}
+export async function inviteAdmin(input:{name:string;email:string;role:string;permissions:string[]}) { if(isPreviewMode){await wait();return {id:String(Date.now()),...input,status:'Invited' as const,lastActive:'Never'};} return apiRequest<AdminAccount>('/super-admin/admins',{method:'POST',body:JSON.stringify(input)}); }
+export async function updateAdmin(id:string,input:{role:string;permissions:string[]}) { if(isPreviewMode){await wait();return input;} return apiRequest(`/super-admin/admins/${id}`,{method:'PATCH',body:JSON.stringify(input)}); }
+export async function removeAdmin(id:string) { if(isPreviewMode){await wait();return;} return apiRequest(`/super-admin/admins/${id}`,{method:'DELETE'}); }
+export async function sendPlatformNotification(input:{organizationIds:'all'|string[];subject:string;message:string;channel:'email'|'email_and_in_app'}) { if(isPreviewMode){await wait(700);return {sentCount:input.organizationIds==='all'?previewOrganizations.length:input.organizationIds.length};} return apiRequest<{sentCount:number}>('/super-admin/notifications/broadcast',{method:'POST',body:JSON.stringify(input)}); }

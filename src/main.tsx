@@ -3,8 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { FeedbackProvider } from './components/ui/Feedback';
+import { AuthProvider } from './context/AuthContext';
 import './styles/global.css';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><BrowserRouter><FeedbackProvider><App /></FeedbackProvider></BrowserRouter></StrictMode>,
+  <StrictMode><BrowserRouter><FeedbackProvider><AuthProvider><App /></AuthProvider></FeedbackProvider></BrowserRouter></StrictMode>,
 );
