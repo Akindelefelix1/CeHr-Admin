@@ -1,5 +1,5 @@
 import type { Organization } from '../types';
-import { featureFlags as previewFeatures, organizations as previewOrganizations, plans as previewPlans } from '../data/mockData';
+import { featureFlags as previewFeatures, organizations as previewOrganizations, plans as previewPlans, revenueData } from '../data/mockData';
 import { apiRequest, isPreviewMode } from './api';
 
 export interface AdminIdentity { id:string; name:string; email:string; role:string; permissions:string[] }
@@ -13,7 +13,9 @@ export interface FeatureFlagDetail { id:string; key:string; name:string; descrip
 export interface FeatureOrganization { id:string; name:string; email:string; status:string; overrideEnabled:boolean|null; effectiveEnabled:boolean }
 export interface SubscriptionPlan { id:string; key:string; name:string; description:string; monthlyPriceKobo:number; annualPriceKobo:number; features:string[]; color:string; recommended:boolean; isActive:boolean; sortOrder:number }
 export interface BillingRecord { id:string; organizationId?:string; organization?:string; plan?:string; description?:string; activity?:string; amountKobo:number; status:string; issuedAt?:string; createdAt?:string; dueAt?:string; reference?:string; currency?:string }
-export interface BillingData { period:string; generatedAt:string; summary:{mrrKobo:number;collectedKobo:number;outstandingKobo:number;pendingKobo?:number;overdueKobo?:number;failedKobo:number;paidCount:number;pendingCount:number;overdueCount:number;totalOrganizations:number;collectionRateKobo:number}; invoices:BillingRecord[]; transactions:BillingRecord[]; payouts:BillingRecord[]; tab:string }
+export interface BillingData { period:string; generatedAt:string; summary:{mrrKobo:number;collectedKobo:number;outstandingKobo:number;pendingKobo?:number;overdueKobo?:number;failedKobo:number;paidCount:number;pendingCount:number;overdueCount:number;trialCount?:number;totalOrganizations:number;collectionRateKobo:number}; invoices:BillingRecord[]; transactions:BillingRecord[]; payouts:BillingRecord[]; tab:string }
+export interface AnalyticsData { period:number; view:string; generatedAt:string; metrics:{organizationGrowth:number;employeeGrowth:number;weeklyActiveUsers:number;engagementRate?:number;retentionRate?:number;featureAdoption:number;activeFeatureCount?:number;activeOrganizations:number;organizations:number;employees:number}; growth:Array<{month:string;organizations:number;employees:number}>; planMix:Array<{name:string;value:number;color:string}>; adoption:Array<{name:string;value:number}> }
+export interface DashboardData { generatedAt:string; metrics:{totalOrganizations:number;activeEmployees:number;monthlyRevenueKobo:number;outstandingKobo:number;outstandingCount:number}; revenue:Array<{month:string;revenueKobo:number;targetKobo:number}>; pulse:{health:number;dailyActiveUsers:number;avgResponseMs:number;openIncidents:number;apiUptime:string}; recentOrganizations:OrganizationDetail[] }
 
 const wait = (ms=450) => new Promise(resolve => window.setTimeout(resolve,ms));
 const previewFeatureDefaults: Record<string, boolean> = Object.fromEntries(previewFeatures.map(feature => [feature.id, feature.rollout === 100]));
@@ -40,6 +42,15 @@ const normalizeOrganization = (raw: Record<string,any>, index=0): OrganizationDe
   activeEmployees:Number(raw.activeEmployees ?? raw._count?.employees ?? raw.employees ?? 0), pendingInvites:Number(raw.pendingInvites ?? raw._count?.employeeInvites ?? 0),
   setupCompleted:Boolean(raw.setupCompleted ?? raw.setupCompletedAt), timezone:raw.timezone, modules:raw.modules || [],
 });
+const normalizeAdmin = (raw: Record<string, any>): AdminAccount => ({
+  id: String(raw.id || raw.adminId || ''),
+  name: String(raw.name || 'Unnamed administrator'),
+  email: String(raw.email || ''),
+  role: String(raw.role || 'Read-only admin'),
+  permissions: Array.isArray(raw.permissions) ? raw.permissions : [],
+  status: raw.status || 'Active',
+  lastActive: formatDateTime(raw.lastActive ?? raw.lastLoginAt ?? raw.lastSeenAt),
+});
 
 export async function loginSuperAdmin(email:string,password:string) {
   if (isPreviewMode) { await wait(); if(password.length<8) throw new Error('Password must contain at least 8 characters.'); return {accessToken:'preview-session',admin:{id:'preview-admin',name:'Adeola Ogunleye',email,role:'Super administrator',permissions:['*']}}; }
@@ -65,9 +76,9 @@ export async function getOrganization(id:string):Promise<OrganizationDetail>{
 }
 export async function listAdmins():Promise<AdminAccount[]> {
   if(isPreviewMode){await wait();return [{id:'1',name:'Adeola Ogunleye',email:'adeola@cehr.com',role:'Super administrator',permissions:['*'],status:'Active',lastActive:'Now'},{id:'2',name:'Moses Eze',email:'moses@cehr.com',role:'Operations admin',permissions:['organizations.read','organizations.manage','notifications.send','support.manage'],status:'Active',lastActive:'18 min ago'},{id:'3',name:'Chidinma Okafor',email:'chidinma@cehr.com',role:'Billing admin',permissions:['billing.read','billing.manage','analytics.read'],status:'Invited',lastActive:'Never'}];}
-  const data=await apiRequest<any>('/super-admin/admins'); return data.admins || data.data || data;
+  const data=await apiRequest<any>('/super-admin/admins'); return (data.admins || data.data || data).map(normalizeAdmin);
 }
-export async function inviteAdmin(input:{name:string;email:string;role:string;permissions:string[]}) { if(isPreviewMode){await wait();return {id:String(Date.now()),...input,status:'Invited' as const,lastActive:'Never'};} return apiRequest<AdminAccount>('/super-admin/admins',{method:'POST',body:JSON.stringify(input)}); }
+export async function inviteAdmin(input:{name:string;email:string;role:string;permissions:string[]}) { if(isPreviewMode){await wait();return {id:String(Date.now()),...input,status:'Invited' as const,lastActive:'Never'};} const data=await apiRequest<any>('/super-admin/admins',{method:'POST',body:JSON.stringify(input)}); return normalizeAdmin(data.admin || data.data || data); }
 export async function updateAdmin(id:string,input:{role:string;permissions:string[]}) { if(isPreviewMode){await wait();return input;} return apiRequest(`/super-admin/admins/${id}`,{method:'PATCH',body:JSON.stringify(input)}); }
 export async function removeAdmin(id:string) { if(isPreviewMode){await wait();return;} return apiRequest(`/super-admin/admins/${id}`,{method:'DELETE'}); }
 export async function sendPlatformNotification(input:{organizationIds:'all'|string[];subject:string;message:string;channel:'email'|'email_and_in_app'}) { if(isPreviewMode){await wait(700);return {sentCount:input.organizationIds==='all'?previewOrganizations.length:input.organizationIds.length};} return apiRequest<{sentCount:number}>('/super-admin/notifications/broadcast',{method:'POST',body:JSON.stringify(input)}); }
@@ -85,4 +96,12 @@ const normalizeBillingRecord=(raw:any):BillingRecord=>({...raw,amountKobo:Number
 export async function getBilling(tab='Overview'):Promise<BillingData>{
   if(isPreviewMode){await wait();const records=[['Northstar Logistics','Subscription renewal',124000000,'Paid'],['Kora Health','Subscription renewal',68000000,'Paid'],['Sabi Retail','Subscription renewal',32000000,'Paid'],['Verde Systems','Subscription renewal',85000000,'Paid'],['Greenfield Foods','Subscription invoice',68000000,'Overdue']].map(([organization,activity,amountKobo,status],index)=>({id:`preview-${index}`,organization:String(organization),activity:String(activity),description:String(activity),amountKobo:Number(amountKobo),status:String(status),createdAt:new Date(Date.now()-index*3600000).toISOString()}));const paid=records.filter(row=>row.status==='Paid');const outstanding=records.filter(row=>row.status!=='Paid');return {period:new Date().toISOString().slice(0,7),generatedAt:new Date().toISOString(),summary:{mrrKobo:paid.reduce((sum,row)=>sum+row.amountKobo,0),collectedKobo:paid.reduce((sum,row)=>sum+row.amountKobo,0),outstandingKobo:outstanding.reduce((sum,row)=>sum+row.amountKobo,0),failedKobo:0,paidCount:paid.length,pendingCount:0,overdueCount:outstanding.length,totalOrganizations:records.length,collectionRateKobo:80},invoices:records,transactions:records,payouts:paid.length?[{id:'preview-payout',description:'Platform subscription settlement',amountKobo:paid.reduce((sum,row)=>sum+row.amountKobo,0),status:'Scheduled',createdAt:new Date().toISOString()}]:[],tab};}
   const data=await apiRequest<any>(`/super-admin/billing?tab=${encodeURIComponent(tab)}`);return {...data,invoices:(data.invoices||[]).map(normalizeBillingRecord),transactions:(data.transactions||[]).map(normalizeBillingRecord),payouts:(data.payouts||[]).map(normalizeBillingRecord)};
+}
+export async function getAnalytics(period=6,view='Growth'):Promise<AnalyticsData>{
+  if(isPreviewMode){await wait();const growth=(period===12?['Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct']:['May','Jun','Jul','Aug','Sep','Oct']).map((month,index)=>({month,organizations:158+index*15,employees:6900+index*400}));return {period,view,generatedAt:new Date().toISOString(),metrics:{organizationGrowth:period===6?18:43,employeeGrowth:period===6?608:1510,weeklyActiveUsers:7104,engagementRate:76,retentionRate:96,featureAdoption:70,activeFeatureCount:6,activeOrganizations:224,organizations:234,employees:9348},growth,planMix:[{name:'Starter',value:68,color:'#b7c1d1'},{name:'Growth',value:94,color:'#2e68e6'},{name:'Scale',value:43,color:'#8b5cf6'},{name:'Enterprise',value:19,color:'#102a68'}],adoption:[{name:'Core HR',value:96},{name:'Documents',value:84},{name:'Attendance',value:76},{name:'Payroll',value:68},{name:'Recruitment',value:53},{name:'Performance',value:41}]};}
+  return apiRequest<AnalyticsData>(`/super-admin/analytics?period=${encodeURIComponent(period)}&view=${encodeURIComponent(view)}`);
+}
+export async function getDashboard(period=6):Promise<DashboardData>{
+  if(isPreviewMode){await wait();return {generatedAt:new Date().toISOString(),metrics:{totalOrganizations:previewOrganizations.length,activeEmployees:previewOrganizations.reduce((sum,org)=>sum+org.employees,0),monthlyRevenueKobo:4280000000,outstandingKobo:320000000,outstandingCount:12},revenue:revenueData.map((row:any)=>({month:String(row.month),revenueKobo:Number(row.revenue||0)*1000000,targetKobo:Number(row.target||0)*1000000})),pulse:{health:92,dailyActiveUsers:6821,avgResponseMs:184,openIncidents:0,apiUptime:'99.99%'},recentOrganizations:previewOrganizations.slice(0,5).map((org,i)=>normalizeOrganization({...org,joined:org.joined},i))};}
+  const data=await apiRequest<any>(`/super-admin/dashboard?period=${encodeURIComponent(period)}`);return {...data,recentOrganizations:(data.recentOrganizations||[]).map(normalizeOrganization)};
 }
