@@ -22,6 +22,7 @@ export const featureFlags: FeatureFlag[] = [
   { id:'talent', name:'Talent Management', description:'Client workforce requests and deployments', category:'People', enabledFor:31, totalOrganizations:224, rollout:14, status:'Beta', icon:'T' },
   { id:'intelligence', name:'People Intelligence', description:'AI-assisted reports and recommendations', category:'Analytics', enabledFor:58, totalOrganizations:224, rollout:26, status:'Beta', icon:'AI' },
   { id:'telecom', name:'Telecom Benefits', description:'Airtime and data purchases for employees', category:'Benefits', enabledFor:101, totalOrganizations:224, rollout:45, status:'Stable', icon:'5G' },
+  { id:'derek-foods', name:'Derek Foods', description:'Employee snacks charged to wallet balance', category:'Benefits', enabledFor:0, totalOrganizations:224, rollout:0, status:'Internal', icon:'DF' },
   { id:'savings', name:'Employee Savings', description:'Managed savings plans and transactions', category:'Finance', enabledFor:0, totalOrganizations:224, rollout:0, status:'Internal', icon:'S' },
 ];
 
