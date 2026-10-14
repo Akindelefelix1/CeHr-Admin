@@ -11,6 +11,15 @@ export interface OrganizationDetail extends Organization {
 }
 
 const wait = (ms=450) => new Promise(resolve => window.setTimeout(resolve,ms));
+const formatDateTime = (value: unknown, fallback = '—') => {
+  if (!value) return fallback;
+  const date = value instanceof Date ? value : new Date(value as string | number);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(date);
+};
 const normalizeOrganization = (raw: Record<string,any>, index=0): OrganizationDetail => ({
   id:String(raw.id || raw.organizationId || `ORG-${index+1}`), name:String(raw.name || 'Unnamed organization'),
   initials:String(raw.initials || raw.name?.split(/\s+/).map((x:string)=>x[0]).join('').slice(0,2) || 'OR').toUpperCase(),
@@ -31,7 +40,7 @@ export async function loginSuperAdmin(email:string,password:string) {
 }
 export async function listOrganizations():Promise<OrganizationDetail[]> {
   if(isPreviewMode){await wait();return previewOrganizations.map((x,i)=>normalizeOrganization({...x,departments:5+i,branches:2+(i%3),pendingInvites:i%4,setupCompleted:i!==5,phone:'+234 800 000 0000',website:`https://${x.name.toLowerCase().replaceAll(' ','')}.com`,timezone:'Africa/Lagos',modules:['Core HR','Attendance','Payroll','Documents']},i));}
-  const data=await apiRequest<any>('/super-admin/organizations?limit=100'); return (data.organizations || data.data || data).map(normalizeOrganization);
+  const data=await apiRequest<any>('/super-admin/organizations?limit=100'); return (data.organizations || data.data || data).map(normalizeOrganization).map((org: OrganizationDetail) => ({...org, lastActive: formatDateTime(org.lastActive)}));
 }
 export async function createOrganization(input:{name:string;email:string;industry?:string;plan?:string}):Promise<OrganizationDetail> {
   if(isPreviewMode){await wait();return normalizeOrganization({id:`ORG-${Date.now()}`,name:input.name,email:input.email,industry:input.industry,plan:input.plan,status:'Trial',joined:new Date().toISOString(),health:100,admin:input.email,pendingInvites:1});}
@@ -45,7 +54,7 @@ export async function updateOrganizationStatus(id:string,status:'Active'|'Suspen
 }
 export async function getOrganization(id:string):Promise<OrganizationDetail>{
   if(isPreviewMode){await wait(250);const item=previewOrganizations.find(x=>x.id===id);if(!item)throw new Error('Organization not found.');return normalizeOrganization({...item,departments:8,branches:3,pendingInvites:4,setupCompleted:true,phone:'+234 800 000 0000',website:'https://example.com',timezone:'Africa/Lagos',description:'A growing organization using CeHR to manage its people operations.',modules:['Core HR','Attendance','Payroll','Recruitment','Documents']});}
-  const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}`); return normalizeOrganization(data.organization || data.data || data);
+  const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}`); const organization=normalizeOrganization(data.organization || data.data || data); return {...organization, lastActive: formatDateTime(organization.lastActive)};
 }
 export async function listAdmins():Promise<AdminAccount[]> {
   if(isPreviewMode){await wait();return [{id:'1',name:'Adeola Ogunleye',email:'adeola@cehr.com',role:'Super administrator',permissions:['*'],status:'Active',lastActive:'Now'},{id:'2',name:'Moses Eze',email:'moses@cehr.com',role:'Operations admin',permissions:['organizations.read','organizations.manage','notifications.send','support.manage'],status:'Active',lastActive:'18 min ago'},{id:'3',name:'Chidinma Okafor',email:'chidinma@cehr.com',role:'Billing admin',permissions:['billing.read','billing.manage','analytics.read'],status:'Invited',lastActive:'Never'}];}
