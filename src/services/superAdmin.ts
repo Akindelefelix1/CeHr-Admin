@@ -1,5 +1,5 @@
 import type { Organization } from '../types';
-import { organizations as previewOrganizations } from '../data/mockData';
+import { featureFlags as previewFeatures, organizations as previewOrganizations } from '../data/mockData';
 import { apiRequest, isPreviewMode } from './api';
 
 export interface AdminIdentity { id:string; name:string; email:string; role:string; permissions:string[] }
@@ -9,8 +9,12 @@ export interface OrganizationDetail extends Organization {
   departments?:number; branches?:number; activeEmployees?:number; pendingInvites?:number;
   setupCompleted?:boolean; timezone?:string; modules?:string[];
 }
+export interface FeatureFlagDetail { id:string; key:string; name:string; description:string; category:string; status:'Stable'|'Beta'|'Internal'; icon?:string|null; defaultEnabled:boolean; enabledFor:number; totalOrganizations:number; rollout:number; createdAt?:string; updatedAt?:string }
+export interface FeatureOrganization { id:string; name:string; email:string; status:string; overrideEnabled:boolean|null; effectiveEnabled:boolean }
 
 const wait = (ms=450) => new Promise(resolve => window.setTimeout(resolve,ms));
+const previewFeatureDefaults: Record<string, boolean> = Object.fromEntries(previewFeatures.map(feature => [feature.id, feature.rollout === 100]));
+const previewFeatureOverrides: Record<string, Record<string, boolean>> = {};
 const formatDateTime = (value: unknown, fallback = '—') => {
   if (!value) return fallback;
   const date = value instanceof Date ? value : new Date(value as string | number);
@@ -64,3 +68,9 @@ export async function inviteAdmin(input:{name:string;email:string;role:string;pe
 export async function updateAdmin(id:string,input:{role:string;permissions:string[]}) { if(isPreviewMode){await wait();return input;} return apiRequest(`/super-admin/admins/${id}`,{method:'PATCH',body:JSON.stringify(input)}); }
 export async function removeAdmin(id:string) { if(isPreviewMode){await wait();return;} return apiRequest(`/super-admin/admins/${id}`,{method:'DELETE'}); }
 export async function sendPlatformNotification(input:{organizationIds:'all'|string[];subject:string;message:string;channel:'email'|'email_and_in_app'}) { if(isPreviewMode){await wait(700);return {sentCount:input.organizationIds==='all'?previewOrganizations.length:input.organizationIds.length};} return apiRequest<{sentCount:number}>('/super-admin/notifications/broadcast',{method:'POST',body:JSON.stringify(input)}); }
+export async function listFeatures():Promise<FeatureFlagDetail[]> { if(isPreviewMode){await wait();return previewFeatures.map(feature=>{const defaultEnabled=previewFeatureDefaults[feature.id]??false;const overrides=previewFeatureOverrides[feature.id]||{};const enabledFor=previewOrganizations.filter(org=>overrides[org.id]??defaultEnabled).length;return {...feature,key:feature.id,defaultEnabled,enabledFor,totalOrganizations:previewOrganizations.length,rollout:Math.round(enabledFor/previewOrganizations.length*100)};});} const data=await apiRequest<any>('/super-admin/features'); return data.features || data.data || data; }
+export async function createFeature(input:{key:string;name:string;description:string;category:string;status:'Stable'|'Beta'|'Internal';icon?:string;defaultEnabled?:boolean}):Promise<FeatureFlagDetail> { if(isPreviewMode){await wait();const id=`feature-${Date.now()}`;previewFeatureDefaults[id]=Boolean(input.defaultEnabled);previewFeatureOverrides[id]={};return {...input,id,icon:input.icon||input.name.slice(0,2).toUpperCase(),defaultEnabled:Boolean(input.defaultEnabled),enabledFor:0,totalOrganizations:previewOrganizations.length,rollout:0};} const data=await apiRequest<any>('/super-admin/features',{method:'POST',body:JSON.stringify(input)}); return data.feature || data.data || data; }
+export async function updateFeature(id:string,input:Partial<Pick<FeatureFlagDetail,'name'|'description'|'category'|'status'|'icon'|'defaultEnabled'>>):Promise<FeatureFlagDetail> { if(isPreviewMode){await wait();if(input.defaultEnabled!==undefined)previewFeatureDefaults[id]=input.defaultEnabled;const current=(await listFeatures()).find(feature=>feature.id===id);if(!current)throw new Error('Feature not found.');return {...current,...input};} const data=await apiRequest<any>(`/super-admin/features/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(input)}); return data.feature || data.data || data; }
+export async function listFeatureOrganizations(id:string):Promise<{feature:{id:string;name:string;defaultEnabled:boolean};organizations:FeatureOrganization[]}> { if(isPreviewMode){await wait();const feature=(await listFeatures()).find(item=>item.id===id);if(!feature)throw new Error('Feature not found.');const overrides=previewFeatureOverrides[id]||{};return {feature:{id,name:feature.name,defaultEnabled:feature.defaultEnabled},organizations:previewOrganizations.map(org=>({id:org.id,name:org.name,email:org.email,status:org.status,overrideEnabled:Object.prototype.hasOwnProperty.call(overrides,org.id)?overrides[org.id]:null,effectiveEnabled:overrides[org.id]??feature.defaultEnabled}))};} return apiRequest(`/super-admin/features/${encodeURIComponent(id)}/organizations`); }
+export async function setFeatureOrganization(id:string,organizationId:string,enabled:boolean) { if(isPreviewMode){await wait();(previewFeatureOverrides[id]??={})[organizationId]=enabled;return {override:{featureId:id,organizationId,enabled}};} return apiRequest(`/super-admin/features/${encodeURIComponent(id)}/organizations/${encodeURIComponent(organizationId)}`,{method:'PUT',body:JSON.stringify({enabled})}); }
+export async function clearFeatureOrganization(id:string,organizationId:string) { if(isPreviewMode){await wait();if(previewFeatureOverrides[id])delete previewFeatureOverrides[id][organizationId];return;} return apiRequest(`/super-admin/features/${encodeURIComponent(id)}/organizations/${encodeURIComponent(organizationId)}`,{method:'DELETE'}); }
