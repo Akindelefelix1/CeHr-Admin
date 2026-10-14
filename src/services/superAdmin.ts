@@ -26,7 +26,7 @@ const normalizeOrganization = (raw: Record<string,any>, index=0): OrganizationDe
 });
 
 export async function loginSuperAdmin(email:string,password:string) {
-  if (isPreviewMode) { await wait(); if(password.length<6) throw new Error('Password must contain at least 6 characters.'); return {accessToken:'preview-session',admin:{id:'preview-admin',name:'Adeola Ogunleye',email,role:'Super administrator',permissions:['*']}}; }
+  if (isPreviewMode) { await wait(); if(password.length<8) throw new Error('Password must contain at least 8 characters.'); return {accessToken:'preview-session',admin:{id:'preview-admin',name:'Adeola Ogunleye',email,role:'Super administrator',permissions:['*']}}; }
   return apiRequest<{accessToken:string;admin:AdminIdentity}>('/super-admin/auth/login',{method:'POST',body:JSON.stringify({email,password})});
 }
 export async function listOrganizations():Promise<OrganizationDetail[]> {
