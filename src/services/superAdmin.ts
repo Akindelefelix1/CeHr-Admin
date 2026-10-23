@@ -2,7 +2,7 @@ import type { Organization } from '../types';
 import { featureFlags as previewFeatures, organizations as previewOrganizations, plans as previewPlans, revenueData } from '../data/mockData';
 import { apiRequest, isPreviewMode } from './api';
 
-export interface AdminIdentity { id:string; name:string; email:string; role:string; permissions:string[] }
+export interface AdminIdentity { id:string; name:string; email:string; role:string; permissions:string[]; mustChangePassword?:boolean }
 export interface AdminAccount extends AdminIdentity { status:'Active'|'Invited'|'Suspended'; lastActive:string }
 export interface OrganizationDetail extends Organization {
   phone?:string; website?:string; address?:string; description?:string; createdAt?:string;
@@ -16,10 +16,22 @@ export interface BillingRecord { id:string; organizationId?:string; organization
 export interface BillingData { period:string; generatedAt:string; summary:{mrrKobo:number;collectedKobo:number;outstandingKobo:number;pendingKobo?:number;overdueKobo?:number;failedKobo:number;paidCount:number;pendingCount:number;overdueCount:number;trialCount?:number;totalOrganizations:number;collectionRateKobo:number}; invoices:BillingRecord[]; transactions:BillingRecord[]; payouts:BillingRecord[]; tab:string }
 export interface AnalyticsData { period:number; view:string; generatedAt:string; metrics:{organizationGrowth:number;employeeGrowth:number;weeklyActiveUsers:number;engagementRate?:number;retentionRate?:number;featureAdoption:number;activeFeatureCount?:number;activeOrganizations:number;organizations:number;employees:number}; growth:Array<{month:string;organizations:number;employees:number}>; planMix:Array<{name:string;value:number;color:string}>; adoption:Array<{name:string;value:number}> }
 export interface DashboardData { generatedAt:string; metrics:{totalOrganizations:number;activeEmployees:number;monthlyRevenueKobo:number;outstandingKobo:number;outstandingCount:number}; revenue:Array<{month:string;revenueKobo:number;targetKobo:number}>; pulse:{health:number;dailyActiveUsers:number;avgResponseMs:number;openIncidents:number;apiUptime:string}; recentOrganizations:OrganizationDetail[] }
+export type SupportStatus = 'OPEN'|'IN_PROGRESS'|'RESOLVED';
+export type SupportPriority = 'LOW'|'NORMAL'|'HIGH'|'URGENT';
+export interface SupportMessage { id:string; body:string; authorType:'ORGANIZATION'|'SUPER_ADMIN'; authorName:string; createdAt:string }
+export interface SupportTicket { id:string; reference:string; subject:string; description:string; category:string; priority:SupportPriority; status:SupportStatus; organizationId:string; organizationName:string; organizationEmail:string; createdAt:string; updatedAt:string; messages:SupportMessage[] }
+export interface AuditLog { id:string; actor:string; actorEmail:string; action:string; actionLabel:string; area:string; areaLabel:string; targetId:string|null; createdAt:string; ipAddress:string|null }
+export interface AuditLogPage { logs:AuditLog[]; areas:{value:string;label:string}[]; pagination:{page:number;limit:number;total:number;totalPages:number} }
 
 const wait = (ms=450) => new Promise(resolve => window.setTimeout(resolve,ms));
 const previewFeatureDefaults: Record<string, boolean> = Object.fromEntries(previewFeatures.map(feature => [feature.id, feature.rollout === 100]));
 const previewFeatureOverrides: Record<string, Record<string, boolean>> = {};
+let previewSupportTickets: SupportTicket[] = [
+  {id:'preview-ticket-2841',reference:'#2841',subject:'Payroll figures not matching',description:'The October payroll total differs from the approved salary schedule.',category:'Payroll',priority:'HIGH',status:'OPEN',organizationId:'org-greenfield',organizationName:'Greenfield Foods',organizationEmail:'admin@greenfield.example',createdAt:new Date(Date.now()-12*60*1000).toISOString(),updatedAt:new Date(Date.now()-12*60*1000).toISOString(),messages:[]},
+  {id:'preview-ticket-2840',reference:'#2840',subject:'Unable to invite new employees',description:'Invitations remain pending and no email is received by new employees.',category:'Employees',priority:'URGENT',status:'OPEN',organizationId:'org-atlas',organizationName:'Atlas Energy',organizationEmail:'admin@atlas.example',createdAt:new Date(Date.now()-28*60*1000).toISOString(),updatedAt:new Date(Date.now()-28*60*1000).toISOString(),messages:[]},
+  {id:'preview-ticket-2839',reference:'#2839',subject:'Annual invoice request',description:'The finance team needs a consolidated annual invoice for renewal.',category:'Billing',priority:'NORMAL',status:'IN_PROGRESS',organizationId:'org-kora',organizationName:'Kora Health',organizationEmail:'admin@kora.example',createdAt:new Date(Date.now()-60*60*1000).toISOString(),updatedAt:new Date(Date.now()-42*60*1000).toISOString(),messages:[]},
+  {id:'preview-ticket-2838',reference:'#2838',subject:'Attendance location issue',description:'Field employees cannot clock in from an approved branch location.',category:'Attendance',priority:'HIGH',status:'RESOLVED',organizationId:'org-sabi',organizationName:'Sabi Retail',organizationEmail:'admin@sabi.example',createdAt:new Date(Date.now()-3*60*60*1000).toISOString(),updatedAt:new Date(Date.now()-90*60*1000).toISOString(),messages:[]},
+];
 const formatDateTime = (value: unknown, fallback = '—') => {
   if (!value) return fallback;
   const date = value instanceof Date ? value : new Date(value as string | number);
@@ -56,9 +68,16 @@ export async function loginSuperAdmin(email:string,password:string) {
   if (isPreviewMode) { await wait(); if(password.length<8) throw new Error('Password must contain at least 8 characters.'); return {accessToken:'preview-session',admin:{id:'preview-admin',name:'Adeola Ogunleye',email,role:'Super administrator',permissions:['*']}}; }
   return apiRequest<{accessToken:string;admin:AdminIdentity}>('/super-admin/auth/login',{method:'POST',body:JSON.stringify({email,password})});
 }
+export async function changeSuperAdminPassword(currentPassword:string,newPassword:string):Promise<void>{
+  if(isPreviewMode){await wait(200);if(currentPassword.length<8)throw new Error('Current password is incorrect.');return;}
+  await apiRequest('/super-admin/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})});
+}
 export async function listOrganizations():Promise<OrganizationDetail[]> {
   if(isPreviewMode){await wait();return previewOrganizations.map((x,i)=>normalizeOrganization({...x,departments:5+i,branches:2+(i%3),pendingInvites:i%4,setupCompleted:i!==5,phone:'+234 800 000 0000',website:`https://${x.name.toLowerCase().replaceAll(' ','')}.com`,timezone:'Africa/Lagos',modules:['Core HR','Attendance','Payroll','Documents']},i));}
-  const data=await apiRequest<any>('/super-admin/organizations?limit=100'); return (data.organizations || data.data || data).map(normalizeOrganization).map((org: OrganizationDetail) => ({...org, lastActive: formatDateTime(org.lastActive)}));
+  const first=await apiRequest<any>('/super-admin/organizations?page=1&limit=100');
+  const pages=Number(first.pagination?.totalPages)||1;
+  const remaining=await Promise.all(Array.from({length:Math.max(0,pages-1)},(_,index)=>apiRequest<any>(`/super-admin/organizations?page=${index+2}&limit=100`)));
+  return [first,...remaining].flatMap(page=>page.organizations||page.data||[]).map(normalizeOrganization).map((org: OrganizationDetail) => ({...org, lastActive: formatDateTime(org.lastActive)}));
 }
 export async function createOrganization(input:{name:string;email:string;industry?:string;plan?:string}):Promise<OrganizationDetail> {
   if(isPreviewMode){await wait();return normalizeOrganization({id:`ORG-${Date.now()}`,name:input.name,email:input.email,industry:input.industry,plan:input.plan,status:'Trial',joined:new Date().toISOString(),health:100,admin:input.email,pendingInvites:1});}
@@ -78,10 +97,21 @@ export async function listAdmins():Promise<AdminAccount[]> {
   if(isPreviewMode){await wait();return [{id:'1',name:'Adeola Ogunleye',email:'adeola@cehr.com',role:'Super administrator',permissions:['*'],status:'Active',lastActive:'Now'},{id:'2',name:'Moses Eze',email:'moses@cehr.com',role:'Operations admin',permissions:['organizations.read','organizations.manage','notifications.send','support.manage'],status:'Active',lastActive:'18 min ago'},{id:'3',name:'Chidinma Okafor',email:'chidinma@cehr.com',role:'Billing admin',permissions:['billing.read','billing.manage','analytics.read'],status:'Invited',lastActive:'Never'}];}
   const data=await apiRequest<any>('/super-admin/admins'); return (data.admins || data.data || data).map(normalizeAdmin);
 }
+export async function listAuditLogs(input:{page:number;limit:number;search?:string;area?:string}):Promise<AuditLogPage> {
+  const params=new URLSearchParams({page:String(input.page),limit:String(input.limit)});
+  if(input.search?.trim())params.set('search',input.search.trim());
+  if(input.area)params.set('area',input.area);
+  const data=await apiRequest<AuditLogPage>(`/super-admin/audit-logs?${params.toString()}`,{}, {cache:false});
+  return data;
+}
 export async function inviteAdmin(input:{name:string;email:string;role:string;permissions:string[]}) { if(isPreviewMode){await wait();return {id:String(Date.now()),...input,status:'Invited' as const,lastActive:'Never'};} const data=await apiRequest<any>('/super-admin/admins',{method:'POST',body:JSON.stringify(input)}); return normalizeAdmin(data.admin || data.data || data); }
-export async function updateAdmin(id:string,input:{role:string;permissions:string[]}) { if(isPreviewMode){await wait();return input;} return apiRequest(`/super-admin/admins/${id}`,{method:'PATCH',body:JSON.stringify(input)}); }
-export async function removeAdmin(id:string) { if(isPreviewMode){await wait();return;} return apiRequest(`/super-admin/admins/${id}`,{method:'DELETE'}); }
+export async function updateAdmin(id:string,input:{role:string;permissions:string[]}) { if(isPreviewMode){await wait();return input;} return apiRequest(`/super-admin/admins/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(input)}); }
+export async function removeAdmin(id:string) { if(isPreviewMode){await wait();return;} return apiRequest(`/super-admin/admins/${encodeURIComponent(id)}`,{method:'DELETE'}); }
 export async function sendPlatformNotification(input:{organizationIds:'all'|string[];subject:string;message:string;channel:'email'|'email_and_in_app'}) { if(isPreviewMode){await wait(700);return {sentCount:input.organizationIds==='all'?previewOrganizations.length:input.organizationIds.length};} return apiRequest<{sentCount:number}>('/super-admin/notifications/broadcast',{method:'POST',body:JSON.stringify(input)}); }
+export async function listSupportTickets(status?:SupportStatus):Promise<SupportTicket[]> { if(isPreviewMode){await wait(250);return previewSupportTickets.filter(ticket=>!status||ticket.status===status);} const query=status?`?status=${encodeURIComponent(status)}`:'';const data=await apiRequest<any>(`/super-admin/support/tickets${query}`,{}, {cache:false});return data.tickets||[]; }
+export async function getSupportTicket(id:string):Promise<SupportTicket> { if(isPreviewMode){await wait(150);const ticket=previewSupportTickets.find(item=>item.id===id);if(!ticket)throw new Error('Ticket not found.');return ticket;} const data=await apiRequest<any>(`/super-admin/support/tickets/${encodeURIComponent(id)}`);return data.ticket; }
+export async function replyToSupportTicket(id:string,body:string):Promise<SupportTicket> { if(isPreviewMode){await wait(250);const now=new Date().toISOString();previewSupportTickets=previewSupportTickets.map(ticket=>ticket.id!==id?ticket:{...ticket,status:ticket.status==='RESOLVED'?'OPEN':'IN_PROGRESS',updatedAt:now,messages:[...ticket.messages,{id:`message-${Date.now()}`,body,authorType:'SUPER_ADMIN',authorName:'CeHR Support',createdAt:now}]});window.dispatchEvent(new Event('supportTicketsUpdated'));return getSupportTicket(id);} const data=await apiRequest<any>(`/super-admin/support/tickets/${encodeURIComponent(id)}/messages`,{method:'POST',body:JSON.stringify({body})});window.dispatchEvent(new Event('supportTicketsUpdated'));return data.ticket; }
+export async function updateSupportTicket(id:string,input:{status?:SupportStatus;priority?:SupportPriority}):Promise<SupportTicket> { if(isPreviewMode){await wait(200);const now=new Date().toISOString();previewSupportTickets=previewSupportTickets.map(ticket=>ticket.id===id?{...ticket,...input,updatedAt:now}:ticket);window.dispatchEvent(new Event('supportTicketsUpdated'));return getSupportTicket(id);} const data=await apiRequest<any>(`/super-admin/support/tickets/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(input)});window.dispatchEvent(new Event('supportTicketsUpdated'));return data.ticket; }
 export async function listFeatures():Promise<FeatureFlagDetail[]> { if(isPreviewMode){await wait();return previewFeatures.map(feature=>{const defaultEnabled=previewFeatureDefaults[feature.id]??false;const overrides=previewFeatureOverrides[feature.id]||{};const enabledFor=previewOrganizations.filter(org=>overrides[org.id]??defaultEnabled).length;return {...feature,key:feature.id,defaultEnabled,enabledFor,totalOrganizations:previewOrganizations.length,rollout:Math.round(enabledFor/previewOrganizations.length*100)};});} const data=await apiRequest<any>('/super-admin/features'); return data.features || data.data || data; }
 export async function createFeature(input:{key:string;name:string;description:string;category:string;status:'Stable'|'Beta'|'Internal';icon?:string;defaultEnabled?:boolean}):Promise<FeatureFlagDetail> { if(isPreviewMode){await wait();const id=`feature-${Date.now()}`;previewFeatureDefaults[id]=Boolean(input.defaultEnabled);previewFeatureOverrides[id]={};return {...input,id,icon:input.icon||input.name.slice(0,2).toUpperCase(),defaultEnabled:Boolean(input.defaultEnabled),enabledFor:0,totalOrganizations:previewOrganizations.length,rollout:0};} const data=await apiRequest<any>('/super-admin/features',{method:'POST',body:JSON.stringify(input)}); return data.feature || data.data || data; }
 export async function updateFeature(id:string,input:Partial<Pick<FeatureFlagDetail,'name'|'description'|'category'|'status'|'icon'|'defaultEnabled'>>):Promise<FeatureFlagDetail> { if(isPreviewMode){await wait();if(input.defaultEnabled!==undefined)previewFeatureDefaults[id]=input.defaultEnabled;const current=(await listFeatures()).find(feature=>feature.id===id);if(!current)throw new Error('Feature not found.');return {...current,...input};} const data=await apiRequest<any>(`/super-admin/features/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(input)}); return data.feature || data.data || data; }

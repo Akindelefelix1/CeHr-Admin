@@ -36,9 +36,10 @@ export default function AnalyticsPage() {
     if (!data) return;
     try {
       const rows = [['Section', 'Name', 'Value', 'Secondary value'], ['Growth', 'Month', 'Organizations', 'Employees'], ...data.growth.map(row => ['Growth', row.month, String(row.organizations), String(row.employees)]), ['Plan mix', 'Plan', 'Organizations', ''], ...data.planMix.map(row => ['Plan mix', row.name, String(row.value), '']), ['Adoption', 'Module', 'Adoption %', ''], ...data.adoption.map(row => ['Adoption', row.name, String(row.value), ''])];
-      const csv = rows.map(row => row.map(value => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n');
-      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-      const link = document.createElement('a'); link.href = url; link.download = `cehr-analytics-${period}-months.csv`; link.click(); URL.revokeObjectURL(url);
+      const cell=(value:string)=>{const safe=/^[\s]*[=+@-]/.test(value)?`'${value}`:value;return `"${safe.replaceAll('"','""')}"`;};
+      const csv = rows.map(row => row.map(cell).join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a'); link.href = url; link.download = `cehr-analytics-${period}-months.csv`; link.click(); window.setTimeout(()=>URL.revokeObjectURL(url),0);
       notify('success', 'Analytics report exported', `${data.growth.length} periods were downloaded.`);
     } catch { notify('error', 'Export failed', 'Please retry the export.'); }
   };
