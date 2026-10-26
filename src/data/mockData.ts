@@ -1,19 +1,19 @@
 import type { FeatureFlag, Organization, PricingPlan } from '../types';
 
 export const organizations: Organization[] = [
-  { id:'ORG-1048', name:'Northstar Logistics', initials:'NL', industry:'Logistics', employees:482, plan:'Enterprise', mrr:1240000, status:'Active', joined:'12 Jan 2025', health:94, admin:'Chiamaka Okoye', email:'admin@northstar.ng', location:'Lagos, Nigeria', lastActive:'2 min ago' },
-  { id:'ORG-1047', name:'Kora Health', initials:'KH', industry:'Healthcare', employees:214, plan:'Scale', mrr:680000, status:'Active', joined:'08 Feb 2025', health:88, admin:'Tobi Balogun', email:'people@kora.health', location:'Abuja, Nigeria', lastActive:'18 min ago' },
-  { id:'ORG-1046', name:'Aster Finance', initials:'AF', industry:'Fintech', employees:126, plan:'Growth', mrr:320000, status:'Trial', joined:'24 Sep 2026', health:72, admin:'Fatima Bello', email:'ops@aster.africa', location:'Lagos, Nigeria', lastActive:'1 hr ago' },
-  { id:'ORG-1045', name:'Greenfield Foods', initials:'GF', industry:'Manufacturing', employees:338, plan:'Scale', mrr:680000, status:'Past due', joined:'16 Mar 2025', health:48, admin:'Ifeanyi Obi', email:'hr@greenfield.co', location:'Ogun, Nigeria', lastActive:'2 days ago' },
-  { id:'ORG-1044', name:'Sabi Retail', initials:'SR', industry:'Retail', employees:91, plan:'Growth', mrr:320000, status:'Active', joined:'02 Apr 2025', health:91, admin:'Mariam Lawal', email:'team@sabiretail.com', location:'Kano, Nigeria', lastActive:'35 min ago' },
-  { id:'ORG-1043', name:'Atlas Energy', initials:'AE', industry:'Energy', employees:677, plan:'Enterprise', mrr:1540000, status:'Suspended', joined:'19 Nov 2024', health:31, admin:'Kunle Adeyemi', email:'admin@atlasenergy.ng', location:'Port Harcourt, Nigeria', lastActive:'12 days ago' },
+  { id:'ORG-1048', name:'Northstar Logistics', initials:'NL', industry:'Logistics', employees:482, plan:'Custom', mrr:1240000, status:'Active', joined:'12 Jan 2025', health:94, admin:'Chiamaka Okoye', email:'admin@northstar.ng', location:'Lagos, Nigeria', lastActive:'2 min ago' },
+  { id:'ORG-1047', name:'Kora Health', initials:'KH', industry:'Healthcare', employees:214, plan:'Professional', mrr:680000, status:'Active', joined:'08 Feb 2025', health:88, admin:'Tobi Balogun', email:'people@kora.health', location:'Abuja, Nigeria', lastActive:'18 min ago' },
+  { id:'ORG-1046', name:'Aster Finance', initials:'AF', industry:'Fintech', employees:126, plan:'Standard', mrr:320000, status:'Trial', joined:'24 Sep 2026', health:72, admin:'Fatima Bello', email:'ops@aster.africa', location:'Lagos, Nigeria', lastActive:'1 hr ago' },
+  { id:'ORG-1045', name:'Greenfield Foods', initials:'GF', industry:'Manufacturing', employees:338, plan:'Professional', mrr:680000, status:'Past due', joined:'16 Mar 2025', health:48, admin:'Ifeanyi Obi', email:'hr@greenfield.co', location:'Ogun, Nigeria', lastActive:'2 days ago' },
+  { id:'ORG-1044', name:'Sabi Retail', initials:'SR', industry:'Retail', employees:91, plan:'Standard', mrr:320000, status:'Active', joined:'02 Apr 2025', health:91, admin:'Mariam Lawal', email:'team@sabiretail.com', location:'Kano, Nigeria', lastActive:'35 min ago' },
+  { id:'ORG-1043', name:'Atlas Energy', initials:'AE', industry:'Energy', employees:677, plan:'Custom', mrr:1540000, status:'Suspended', joined:'19 Nov 2024', health:31, admin:'Kunle Adeyemi', email:'admin@atlasenergy.ng', location:'Port Harcourt, Nigeria', lastActive:'12 days ago' },
 ];
 
 export const plans: PricingPlan[] = [
-  { id:'starter', name:'Starter', description:'For growing teams building their HR foundation.', monthlyPrice:850, annualPrice:720, subscribers:68, color:'#8c9aad', features:['Up to 25 employees','Core HR & documents','Leave management','Email support'] },
-  { id:'growth', name:'Growth', description:'For companies ready to automate people operations.', monthlyPrice:2500, annualPrice:2100, subscribers:94, color:'#2e68e6', recommended:true, features:['Up to 150 employees','Payroll & attendance','Recruitment suite','Priority support'] },
-  { id:'scale', name:'Scale', description:'Advanced control for multi-team organizations.', monthlyPrice:5000, annualPrice:4250, subscribers:43, color:'#8b5cf6', features:['Up to 500 employees','Advanced analytics','Performance & surveys','Dedicated success manager'] },
-  { id:'enterprise', name:'Enterprise', description:'Flexible infrastructure for complex workforces.', monthlyPrice:0, annualPrice:0, subscribers:19, color:'#102a68', features:['Unlimited employees','Talent management','Custom workflows & SSO','24/7 premium support'] },
+  { id:'starter', name:'Starter', description:'For growing teams building their HR foundation.', monthlyPrice:850, annualPrice:850*12*0.85, subscribers:68, color:'#8c9aad', features:['Up to 25 employees','Core HR & documents','Leave management','Email support'] },
+  { id:'standard', name:'Standard', description:'For companies ready to automate people operations.', monthlyPrice:2500, annualPrice:2500*12*0.85, subscribers:94, color:'#2e68e6', recommended:true, features:['Up to 150 employees','Payroll & attendance','Recruitment suite','Priority support'] },
+  { id:'professional', name:'Professional', description:'Advanced control for multi-team organizations.', monthlyPrice:5000, annualPrice:5000*12*0.85, subscribers:43, color:'#8b5cf6', features:['Up to 500 employees','Advanced analytics','Performance & surveys','Help Desk','Learning Management System (LMS)','Dedicated success manager'] },
+  { id:'custom', name:'Custom', description:'Quote-based pricing created for your organization.', monthlyPrice:0, annualPrice:0, subscribers:19, color:'#102a68', features:['Flexible user pricing','Custom workflows & SSO','Dedicated support'] },
 ];
 
 export const featureFlags: FeatureFlag[] = [
@@ -24,6 +24,8 @@ export const featureFlags: FeatureFlag[] = [
   { id:'telecom', name:'Telecom Benefits', description:'Airtime and data purchases for employees', category:'Benefits', enabledFor:101, totalOrganizations:224, rollout:45, status:'Stable', icon:'5G' },
   { id:'derek-foods', name:'Derek Foods', description:'Employee snacks charged to wallet balance', category:'Benefits', enabledFor:0, totalOrganizations:224, rollout:0, status:'Internal', icon:'DF' },
   { id:'savings', name:'Employee Savings', description:'Managed savings plans and transactions', category:'Finance', enabledFor:0, totalOrganizations:224, rollout:0, status:'Internal', icon:'S' },
+  { id:'help-desk', name:'Help Desk', description:'Organization support tickets and conversations with CeHR', category:'People', enabledFor:43, totalOrganizations:224, rollout:19, status:'Stable', icon:'HD' },
+  { id:'learning-management-system', name:'Learning Management System (LMS)', description:'Learning and course management workspace', category:'People', enabledFor:43, totalOrganizations:224, rollout:19, status:'Stable', icon:'LMS' },
 ];
 
 export const revenueData = [
