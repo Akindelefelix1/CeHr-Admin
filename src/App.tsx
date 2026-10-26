@@ -20,11 +20,10 @@ const pagePermissions:Record<string,string[]>={
  '/billing':['billing.read'], '/analytics':['analytics.read'], '/notifications':['notifications.send'],
  '/roles-access':['admins.manage'], '/support':['support.manage'], '/audit':['audit.read'], '/settings':['settings.manage'],
 };
-function ProtectedApp(){const {admin}=useAuth();const location=useLocation();if(!admin)return <Navigate to="/login" replace state={{from:location.pathname}}/>;if(admin.mustChangePassword&&location.pathname!=='/change-password')return <Navigate to="/change-password" replace/>;if(!admin.mustChangePassword&&location.pathname==='/change-password')return <Navigate to="/dashboard" replace/>;
+function ProtectedApp(){const {admin}=useAuth();const location=useLocation();if(!admin)return <Navigate to="/login" replace state={{from:location.pathname}}/>;if(location.pathname==='/change-password')return <ChangePasswordPage/>;
  const canAccess=(path:string)=>admin.permissions.includes('*')||pagePermissions[path].every(permission=>admin.permissions.includes(permission));
  const fallback=Object.keys(pagePermissions).find(canAccess);
  const denied=<section className="empty-state"><b>You don’t have access to this page</b><span>Your administrator permissions do not include the access required here.</span>{fallback&&<Link className="button button--secondary" to={fallback}>Go to an available page</Link>}</section>;
  const page=(path:string,element:ReactNode)=><Route key={path} path={path} element={canAccess(path)?element:denied}/>;
- if(admin.mustChangePassword)return <ChangePasswordPage/>;
  return <AppShell><Routes>{page('/dashboard',<DashboardPage/>)}{page('/organizations',<OrganizationsPage/>)}{page('/plans',<PlansPage/>)}{page('/features',<FeaturesPage/>)}{page('/billing',<BillingPage/>)}{page('/analytics',<AnalyticsPage/>)}{page('/notifications',<NotificationsPage/>)}{page('/roles-access',<RolesAccessPage/>)}{page('/support',<SupportPage/>)}{page('/audit',<AuditPage/>)}{page('/settings',<SettingsPage/>)}<Route path="*" element={fallback?<Navigate to={fallback} replace/>:<>{denied}</>}/></Routes></AppShell>}
 export default function App(){return <Routes><Route path="/" element={<Navigate to="/login" replace/>}/><Route path="/login" element={<LoginPage/>}/><Route path="/*" element={<ProtectedApp/>}/></Routes>}
