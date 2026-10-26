@@ -56,13 +56,24 @@ export default function PlansPage() {
         const tierIntro = plan.key === 'starter' ? 'Included in Starter:' : plan.key === 'standard' ? 'Everything in Starter, plus:' : plan.key === 'professional' ? 'Everything in Standard, plus:' : 'Everything in Professional, tailored to your needs:';
         const tierOrder = ['starter', 'standard', 'professional'];
         const tierIndex = plan.isCustom ? tierOrder.length : Math.max(0, tierOrder.indexOf(plan.key.toLowerCase()));
-        const cumulativeFeatures = [...new Set(plans.filter(item => { if (item.isCustom) return item.id === plan.id; const itemRank = tierOrder.indexOf(item.key.toLowerCase()); return itemRank >= 0 && itemRank <= tierIndex; }).flatMap(item => item.features))];
+        const featureKey = (feature: string) => feature.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
+        const lowerTierFeatures = new Set(plans
+          .filter(item => !item.isCustom && tierOrder.indexOf(item.key.toLowerCase()) >= 0 && tierOrder.indexOf(item.key.toLowerCase()) < tierIndex)
+          .flatMap(item => item.features.map(featureKey)));
+        const additionalFeatures = [...new Map(plan.features
+          .filter(feature => !/^((included in starter:?)|(everything in .+, plus:?)|(everything in professional.*))$/i.test(feature.trim()))
+          .filter(feature => !lowerTierFeatures.has(featureKey(feature)))
+          .map(feature => [featureKey(feature), feature])).values()];
         return <article className={`price-card ${plan.recommended ? 'price-card--featured' : ''}`} key={plan.id}>
           <div className="price-dot" style={{ background: plan.color }}/><h3>{plan.name}</h3><p>{plan.description}</p>
           {plan.isCustom && <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">{quote ? 'Quote-based' : 'Custom quote'}</span>}
           <div className="price"><b>{quote ? 'Quote-based' : money(amount)}</b><span>{quote ? 'set by the super admin' : `/ employee / ${annual ? 'year' : 'month'}`}</span></div>
-          <div className="mt-4 grid grid-cols-2 gap-y-2 border-t border-slate-100 pt-3 text-xs"><span className="text-slate-500">Minimum monthly fee</span><b className="text-right">{money(plan.minimumMonthlyFeeKobo)}</b><span className="text-slate-500">Annual discount</span><b className="text-right">{plan.annualDiscountPercent}%</b></div>
-          <div className="mt-4 text-xs font-semibold text-slate-600">{tierIntro}</div><ul>{cumulativeFeatures.map(feature => <li key={feature}><Check size={15}/>{feature}</li>)}</ul>
+          <div className="pricing-meta">
+            <div><span>Minimum monthly fee</span><b>{money(plan.minimumMonthlyFeeKobo)}</b></div>
+            <div><span>Annual discount</span><b>{plan.annualDiscountPercent}%</b></div>
+          </div>
+          <div className="pricing-tier-intro">{tierIntro}</div>
+          <ul>{additionalFeatures.map(feature => <li key={feature}><Check size={15}/>{feature}</li>)}</ul>
           <button className="button button--secondary button--full" disabled={Boolean(saving)} onClick={() => edit(plan)}>Edit plan</button>
         </article>;
       })}
