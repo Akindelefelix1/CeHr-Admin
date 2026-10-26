@@ -9,6 +9,8 @@ export interface OrganizationDetail extends Organization {
   trialStartedAt?:string|null; trialEndsAt?:string|null; trialStatus?:'Trial'|'Active'|'Expired'|'Converted'|'Paused'; trialUserCap?:number|null; trialGraceEndsAt?:string|null; trialArchiveUntilAt?:string|null;
   departments?:number; branches?:number; activeEmployees?:number; pendingInvites?:number;
   setupCompleted?:boolean; timezone?:string; modules?:string[];
+  archivedAt?:string|null; purgeAfter?:string|null; legalHold?:boolean; legalHoldReason?:string|null;
+  deletionAudit?:Array<{id:string;actorEmail:string;action:string;reason?:string|null;createdAt:string}>;
 }
 export interface FeatureFlagDetail { id:string; key:string; name:string; description:string; category:string; status:'Stable'|'Beta'|'Internal'; icon?:string|null; defaultEnabled:boolean; minimumPlan:'Starter'|'Standard'|'Professional'|'Custom'; enabledFor:number; totalOrganizations:number; rollout:number; createdAt?:string; updatedAt?:string }
 export interface FeatureOrganization { id:string; name:string; email:string; status:string; plan?:string; overrideEnabled:boolean|null; effectiveEnabled:boolean }
@@ -53,6 +55,8 @@ const normalizeOrganization = (raw: Record<string,any>, index=0): OrganizationDe
   phone:raw.phone, website:raw.website, address:raw.address, description:raw.description, createdAt:raw.createdAt,
   subscriptionStartedAt:raw.subscriptionStartedAt,billingCycle:raw.billingCycle==='ANNUAL'?'ANNUAL':'MONTHLY',
   trialStartedAt:raw.trialStartedAt,trialEndsAt:raw.trialEndsAt,trialStatus:raw.trialStatus,trialUserCap:raw.trialUserCap,trialGraceEndsAt:raw.trialGraceEndsAt,trialArchiveUntilAt:raw.trialArchiveUntilAt,
+  archivedAt:raw.archivedAt,purgeAfter:raw.purgeAfter,legalHold:Boolean(raw.legalHold),legalHoldReason:raw.legalHoldReason||null,
+  deletionAudit:Array.isArray(raw.deletionAudit)?raw.deletionAudit:[],
   departments:Number(raw.departments ?? raw._count?.departments ?? 0), branches:Number(raw.branches ?? raw._count?.branches ?? 0),
   activeEmployees:Number(raw.activeEmployees ?? raw._count?.employees ?? raw.employees ?? 0), pendingInvites:Number(raw.pendingInvites ?? raw._count?.employeeInvites ?? 0),
   setupCompleted:Boolean(raw.setupCompleted ?? raw.setupCompletedAt), timezone:raw.timezone, modules:raw.modules || [],
@@ -92,6 +96,9 @@ export async function updateOrganizationStatus(id:string,status:'Active'|'Suspen
   const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}/status`,{method:'PATCH',body:JSON.stringify({status})});
   return normalizeOrganization(data.organization || data.data || data);
 }
+export async function restoreArchivedOrganization(id:string,reason:string) { if(isPreviewMode){await wait();const org=previewOrganizations.find(item=>item.id===id);if(!org)throw new Error('Organization not found.');(org as any).status='Active';return;} return apiRequest('/super-admin/organizations/'+encodeURIComponent(id)+'/archive/restore',{method:'POST',body:JSON.stringify({reason})}); }
+export async function setOrganizationLegalHold(id:string,enabled:boolean,reason:string) { if(isPreviewMode){await wait();return {legalHold:enabled,legalHoldReason:enabled?reason:null};} return apiRequest('/super-admin/organizations/'+encodeURIComponent(id)+'/archive/legal-hold',{method:'PATCH',body:JSON.stringify({enabled,reason})}); }
+export async function purgeArchivedOrganization(id:string,reason:string):Promise<{assetCleanupPending:boolean}> { if(isPreviewMode){await wait();const index=previewOrganizations.findIndex(item=>item.id===id);if(index>=0)previewOrganizations.splice(index,1);return {assetCleanupPending:false};} return apiRequest<{assetCleanupPending:boolean}>('/super-admin/organizations/'+encodeURIComponent(id)+'/archive',{method:'DELETE',body:JSON.stringify({reason})}); }
 export async function updateOrganizationSubscription(id:string,planKey:string,billingCycle:'MONTHLY'|'ANNUAL'):Promise<OrganizationDetail>{
   if(isPreviewMode){await wait();const organization=previewOrganizations.find(item=>item.id===id);const plan=previewPlans.find(item=>item.name.toLowerCase()===planKey.toLowerCase()||item.id===planKey);if(!organization||!plan)throw new Error('Organization or plan not found.');return normalizeOrganization({...organization,plan:plan.name,billingCycle,mrr:plan.monthlyPrice*organization.employees});}
   const data=await apiRequest<any>(`/super-admin/organizations/${encodeURIComponent(id)}/subscription`,{method:'PATCH',body:JSON.stringify({planKey,billingCycle})});

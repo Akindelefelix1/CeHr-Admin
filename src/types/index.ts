@@ -1,4 +1,4 @@
-export type OrganizationStatus = 'Active' | 'Trial' | 'Past due' | 'Suspended';
+export type OrganizationStatus = 'Active' | 'Trial' | 'Past due' | 'Suspended' | 'Archived';
 export type PlanName = 'Starter' | 'Standard' | 'Professional' | 'Custom';
 
 export interface Organization {
