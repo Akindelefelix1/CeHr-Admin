@@ -67,7 +67,7 @@ export default function PlansPage() {
         return <article className={`price-card ${plan.recommended ? 'price-card--featured' : ''}`} key={plan.id}>
           <div className="price-dot" style={{ background: plan.color }}/><h3>{plan.name}</h3><p>{plan.description}</p>
           {plan.isCustom && <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">{quote ? 'Quote-based' : 'Custom quote'}</span>}
-          <div className="price"><b>{quote ? 'Quote-based' : money(amount)}</b><span>{quote ? 'set by the super admin' : `/ employee / ${annual ? 'year' : 'month'}`}</span></div>
+          <div className="price"><b>{quote ? 'Quote-based' : money(amount)}</b>{!quote && <span>{`/ employee / ${annual ? 'year' : 'month'}`}</span>}</div>
           <div className="pricing-meta">
             <div><span>Minimum monthly fee</span><b>{money(plan.minimumMonthlyFeeKobo)}</b></div>
             <div><span>Annual discount</span><b>{plan.annualDiscountPercent}%</b></div>

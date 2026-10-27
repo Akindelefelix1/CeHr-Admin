@@ -44,6 +44,20 @@
 .sidebar__brand>.sidebar-collapse-button{display:grid}
 @media(max-width:960px){.sidebar__brand>.sidebar-collapse-button{display:none}}
 
+@media(min-width:961px){
+  .app-shell--sidebar-hover-expanded .sidebar{width:252px}
+  .app-shell--sidebar-hover-expanded .sidebar__brand{justify-content:flex-start;padding:0 22px}
+  .app-shell--sidebar-hover-expanded .sidebar__brand>div:nth-child(2),.app-shell--sidebar-hover-expanded .workspace>span,.app-shell--sidebar-hover-expanded .workspace__row>div,.app-shell--sidebar-hover-expanded .workspace__row>svg,.app-shell--sidebar-hover-expanded .nav-label,.app-shell--sidebar-hover-expanded .sidebar nav a>span,.app-shell--sidebar-hover-expanded .sidebar__footer>a>span,.app-shell--sidebar-hover-expanded .sidebar-logout>span,.app-shell--sidebar-hover-expanded .profile>div{display:initial}
+  .app-shell--sidebar-hover-expanded .sidebar__brand>div:nth-child(2),.app-shell--sidebar-hover-expanded .workspace__row>div,.app-shell--sidebar-hover-expanded .profile>div{display:flex}
+  .app-shell--sidebar-hover-expanded .workspace{margin:18px 14px 12px;padding:0 8px}
+  .app-shell--sidebar-hover-expanded .workspace__row{justify-content:flex-start;margin-top:10px}
+  .app-shell--sidebar-hover-expanded .sidebar nav{padding:4px 14px}
+  .app-shell--sidebar-hover-expanded .sidebar nav a,.app-shell--sidebar-hover-expanded .sidebar__footer>a,.app-shell--sidebar-hover-expanded .sidebar-logout{justify-content:flex-start;gap:12px;padding:0 11px;width:100%;margin:2px 0}
+  .app-shell--sidebar-hover-expanded .sidebar__footer{padding:8px 14px 16px}
+  .app-shell--sidebar-hover-expanded .profile{justify-content:flex-start;padding:10px 7px}
+  .app-shell--sidebar-hover-expanded .main{margin-left:252px}
+}
+
 /* Pin the collapse handle to the sidebar edge so it remains visible in both widths. */
 .sidebar__brand>.sidebar-collapse-button{position:absolute;top:78px;right:-14px;z-index:40;width:30px;height:34px;margin:0;border:1px solid var(--border);border-radius:0 8px 8px 0;background:#fff;box-shadow:2px 2px 8px #14213d16;color:#536074}
 .app-shell--sidebar-collapsed .sidebar__brand{position:static}
