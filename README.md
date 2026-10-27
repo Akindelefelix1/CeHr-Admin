@@ -2,7 +2,14 @@
 
 Super-admin interface for managing the CeHR platform. Authentication, organizations, administrator access, and broadcasts use a typed API boundary. Without `VITE_API_BASE_URL`, the project runs in labelled UI-preview mode.
 
+PS C:\Users\akind\Desktop\New-CeHR> 
+PS C:\Users\akind\Desktop\New-CeHR-BE> 
+access the Organization and BE folders from here for all end to wiring
+
+Audit and check all the recently implemented parts for any gap, error or inconsistency and fix them neatly end to end
+
 ## Run locally
+
 
 ```bash
 npm install
