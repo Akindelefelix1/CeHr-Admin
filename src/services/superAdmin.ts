@@ -5,7 +5,7 @@ import { apiRequest, isPreviewMode } from './api';
 export interface AdminIdentity { id:string; name:string; email:string; role:string; permissions:string[]; mustChangePassword?:boolean }
 export interface AdminAccount extends AdminIdentity { status:'Active'|'Invited'|'Suspended'; lastActive:string }
 export interface OrganizationDetail extends Organization {
-  phone?:string; website?:string; address?:string; description?:string; createdAt?:string; subscriptionStartedAt?:string; billingCycle?:'MONTHLY'|'ANNUAL';
+  phone?:string; website?:string; address?:string; description?:string; currency?:string; createdAt?:string; subscriptionStartedAt?:string; billingCycle?:'MONTHLY'|'ANNUAL';
   trialStartedAt?:string|null; trialEndsAt?:string|null; trialStatus?:'Trial'|'Active'|'Expired'|'Converted'|'Paused'; trialUserCap?:number|null; trialGraceEndsAt?:string|null; trialArchiveUntilAt?:string|null;
   departments?:number; branches?:number; activeEmployees?:number; pendingInvites?:number;
   setupCompleted?:boolean; timezone?:string; modules?:string[];
@@ -47,7 +47,7 @@ const formatDateTime = (value: unknown, fallback = '—') => {
 const normalizeOrganization = (raw: Record<string,any>, index=0): OrganizationDetail => ({
   id:String(raw.id || raw.organizationId || `ORG-${index+1}`), name:String(raw.name || 'Unnamed organization'),
   initials:String(raw.initials || raw.name?.split(/\s+/).map((x:string)=>x[0]).join('').slice(0,2) || 'OR').toUpperCase(),
-  industry:String(raw.industry || 'Not specified'), employees:Number(raw.employees ?? raw.employeeCount ?? raw._count?.employees ?? 0),
+  industry:String(raw.industry || 'Not specified'), currency:String(raw.currency || 'NGN'), employees:Number(raw.employees ?? raw.employeeCount ?? raw._count?.employees ?? 0),
   plan:raw.plan || raw.subscription?.plan || 'Starter', mrr:Number(raw.mrr ?? raw.subscription?.mrr ?? 0), status:raw.status || 'Active',
   joined:String(raw.joined || (raw.createdAt ? new Date(raw.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—')),
   health:Number(raw.health ?? 80), admin:String(raw.admin || raw.ownerName || raw.name || 'Organization admin'), email:String(raw.email || ''),

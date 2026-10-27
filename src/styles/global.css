@@ -45,6 +45,8 @@
 @media(max-width:960px){.sidebar__brand>.sidebar-collapse-button{display:none}}
 
 @media(min-width:961px){
+  .sidebar{transition:width 220ms cubic-bezier(.2,.75,.25,1)}
+  .main{transition:margin-left 220ms cubic-bezier(.2,.75,.25,1)}
   .app-shell--sidebar-hover-expanded .sidebar{width:252px}
   .app-shell--sidebar-hover-expanded .sidebar__brand{justify-content:flex-start;padding:0 22px}
   .app-shell--sidebar-hover-expanded .sidebar__brand>div:nth-child(2),.app-shell--sidebar-hover-expanded .workspace>span,.app-shell--sidebar-hover-expanded .workspace__row>div,.app-shell--sidebar-hover-expanded .workspace__row>svg,.app-shell--sidebar-hover-expanded .nav-label,.app-shell--sidebar-hover-expanded .sidebar nav a>span,.app-shell--sidebar-hover-expanded .sidebar__footer>a>span,.app-shell--sidebar-hover-expanded .sidebar-logout>span,.app-shell--sidebar-hover-expanded .profile>div{display:initial}
