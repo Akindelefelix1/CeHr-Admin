@@ -1,12 +1,18 @@
 # CeHR Control
 
-Super-admin interface for managing the CeHR platform. Authentication, organizations, administrator access, and broadcasts use a typed API boundary. Without `VITE_API_BASE_URL`, the project runs in labelled UI-preview mode.
+Super-admin interface for managing the CeHR platform. Authentication, organizations, administrator access, billing, support, feature flags, and broadcasts use a typed API boundary. Without `VITE_API_BASE_URL`, the project runs in labelled UI-preview mode.
 
-PS C:\Users\akind\Desktop\New-CeHR> 
-PS C:\Users\akind\Desktop\New-CeHR-BE> 
-access the Organization and BE folders from here for all end to wiring
+## API environments and deployment
 
-Audit and check all the recently implemented parts for any gap, error or inconsistency and fix them neatly end to end
+The API origin is selected at build time:
+
+- `staging` deploys to Render and reads `.env.staging`, which points to `https://new-cehr-be-bkla.onrender.com`.
+- `main` production builds use `.env.production`, which points to the Contabo API at `https://cehr-api.vickybestelecom.com`.
+- Local development reads `.env` or can use `.env.example` as a starting point. The local backend default is `http://localhost:8141`.
+
+Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site and rewrites application routes to `index.html`. Production builds for Contabo use `npm ci && npm run build`; the Vite production mode selects the Contabo API. Environment variables configured by the hosting service take precedence over the committed env files.
+
+Environment values are embedded into the built frontend. Rebuild and redeploy after changing the API origin. The backend endpoint contract and wiring status are documented in [SUPER_ADMIN_API_CONTRACT.md](SUPER_ADMIN_API_CONTRACT.md).
 
 ## Run locally
 
@@ -51,6 +57,6 @@ src/
   types/           Shared domain contracts
 ```
 
-## API integration plan
+## API integration
 
-Production builds use `VITE_API_BASE_URL=https://new-cehr-be-bkla.onrender.com`. The required server contract is documented in `SUPER_ADMIN_API_CONTRACT.md`; the matching NestJS module and database migration are implemented in `New-CeHR-BE`.
+The typed API adapter is in `src/services/superAdmin.ts`, with authentication and request handling in `src/services/api.ts`. It is wired to the super-admin controller in the sibling `New-CeHR-BE` repository. The API contract lists the live endpoint groups and notes remaining backend-specific verification.

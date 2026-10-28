@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cehr-super-admin
+    env: static
+    plan: free
+    branch: staging
+    buildCommand: npm ci && npm run build -- --mode staging
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://new-cehr-be-bkla.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
