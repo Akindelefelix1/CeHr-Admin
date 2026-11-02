@@ -28,7 +28,7 @@ All protected routes below use the platform-admin bearer token. Route definition
 | `POST` | `/notifications/broadcast` | Organization broadcasts |
 | `GET`, `POST`, `PATCH` | `/support/tickets*`, `/support/analytics` | Support queue, replies, notes, assignment and ticket actions |
 
-The broadcast body contains `organizationIds` (`"all"` or an ID array), `subject`, `message`, and `channel`. The backend sends email via its existing mail service and returns a sent count.
+The broadcast body contains `organizationIds` (`"all"` or an ID array), `subject`, `message`, and `channel`. The response reports in-app/email delivery counts separately; email-only broadcasts are rejected when the platform setting or mail transport is unavailable, and email-plus-in-app broadcasts fall back to in-app delivery.
 
 ## Deployment requirements
 

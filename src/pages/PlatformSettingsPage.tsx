@@ -33,6 +33,7 @@ export function SettingsPage() {
   const [draft, setDraft] = useState<PlatformSettingsValues | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmMaintenance, setConfirmMaintenance] = useState(false);
   const [error, setError] = useState('');
   const { notify } = useFeedback();
 
@@ -53,16 +54,19 @@ export function SettingsPage() {
   useEffect(() => { void refresh(); }, [refresh]);
 
   const dirty = useMemo(() => Boolean(data && draft && JSON.stringify(data.settings) !== JSON.stringify(draft)), [data, draft]);
+  const enablingMaintenance = Boolean(data && draft?.maintenanceMode && !data.settings.maintenanceMode);
   const change = <K extends keyof PlatformSettingsValues>(key: K, value: PlatformSettingsValues[K]) => setDraft(current => current ? { ...current, [key]: value } : current);
 
   const save = async () => {
     if (!draft || !dirty) return;
+    if (enablingMaintenance && !confirmMaintenance) return;
     setSaving(true);
     setError('');
     try {
       const result = await updatePlatformSettings(draft);
       setData(result);
       setDraft({ ...result.settings });
+      setConfirmMaintenance(false);
       notify('success', 'Platform settings saved', 'Changes are active on the backend.');
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : 'Platform settings could not be saved.';
@@ -103,18 +107,19 @@ export function SettingsPage() {
           <div className="settings-content__heading"><span className="settings-content__icon"><ActiveIcon size={19} /></span><div><h3 id="settings-section-title">{activeSection.label}</h3><p>{section === 'operations' ? 'Control whether organization services can be used.' : section === 'security' ? 'Set super-admin session and audit history limits.' : section === 'notifications' ? 'Choose whether platform announcements may be emailed.' : 'Check backend integration configuration without exposing credentials.'}</p></div></div>
 
           {section === 'operations' && <div className="settings-fields">
-            <div className="settings-row"><div><b>Maintenance mode</b><p>Pauses organization API requests and returns a maintenance message. Super-admin and health endpoints remain available.</p></div><SettingSwitch checked={draft.maintenanceMode} label="Maintenance mode" onChange={value => change('maintenanceMode', value)} /></div>
-            <label className="settings-field"><span>Maintenance message</span><textarea value={draft.maintenanceMessage} maxLength={500} rows={3} onChange={event => change('maintenanceMessage', event.target.value)} placeholder="CeHR is undergoing scheduled maintenance. Please try again shortly."/><small>{draft.maintenanceMessage.length}/500 characters. This message is returned to organization API clients while maintenance is on.</small></label>
+            <div className="settings-row"><div><b>Maintenance mode</b><p>Pauses organization API requests and returns a maintenance message. Super-admin and health endpoints remain available.</p></div><SettingSwitch checked={draft.maintenanceMode} disabled={saving} label="Maintenance mode" onChange={value => { if (!value) setConfirmMaintenance(false); change('maintenanceMode', value); }} /></div>
+            {enablingMaintenance && <label className="settings-confirm-maintenance"><input type="checkbox" checked={confirmMaintenance} onChange={event => setConfirmMaintenance(event.target.checked)} disabled={saving}/><span>I understand that enabling maintenance pauses requests for all organizations.</span></label>}
+            <label className="settings-field"><span>Maintenance message</span><textarea value={draft.maintenanceMessage} maxLength={500} rows={3} disabled={saving} onChange={event => change('maintenanceMessage', event.target.value)} placeholder="CeHR is undergoing scheduled maintenance. Please try again shortly."/><small>{draft.maintenanceMessage.length}/500 characters. This message is returned to organization API clients while maintenance is on.</small></label>
           </div>}
 
           {section === 'security' && <div className="settings-fields">
-            <label className="settings-field settings-field--narrow"><span>Super-admin session duration</span><div className="settings-input-with-suffix"><input type="number" min={1} max={24} step={1} value={draft.adminSessionHours} onChange={event => change('adminSessionHours', Number(event.target.value))}/><span>hours</span></div><small>Applies to new sign-ins. Existing access tokens keep their current expiry.</small></label>
-            <label className="settings-field settings-field--narrow"><span>Audit log retention</span><div className="settings-input-with-suffix"><input type="number" min={30} max={3650} step={1} value={draft.auditRetentionDays} onChange={event => change('auditRetentionDays', Number(event.target.value))}/><span>days</span></div><small>Older audit entries are excluded immediately and removed by the daily cleanup.</small></label>
+            <label className="settings-field settings-field--narrow"><span>Super-admin session duration</span><div className="settings-input-with-suffix"><input type="number" min={1} max={24} step={1} value={draft.adminSessionHours} disabled={saving} onChange={event => change('adminSessionHours', Number(event.target.value))}/><span>hours</span></div><small>Applies to new sign-ins. Existing access tokens keep their current expiry.</small></label>
+            <label className="settings-field settings-field--narrow"><span>Audit log retention</span><div className="settings-input-with-suffix"><input type="number" min={30} max={3650} step={1} value={draft.auditRetentionDays} disabled={saving} onChange={event => change('auditRetentionDays', Number(event.target.value))}/><span>days</span></div><small>Older audit entries are excluded immediately and removed by the daily cleanup.</small></label>
           </div>}
 
           {section === 'notifications' && <div className="settings-fields">
-            <div className="settings-row"><div><b>Platform email broadcasts</b><p>When disabled, email-only broadcasts are rejected. Combined email and in-app broadcasts continue in-app only.</p></div><SettingSwitch checked={draft.emailNotificationsEnabled} label="Platform email broadcasts" onChange={value => change('emailNotificationsEnabled', value)} /></div>
-            <div className="settings-note"><Bell size={17}/><span>Transactional emails such as account invitations and password resets continue to follow the backend mail configuration.</span></div>
+            <div className="settings-row"><div><b>Platform email broadcasts</b><p>When disabled, email-only broadcasts are rejected. Combined email and in-app broadcasts continue in-app only.</p></div><SettingSwitch checked={draft.emailNotificationsEnabled} disabled={saving} label="Platform email broadcasts" onChange={value => change('emailNotificationsEnabled', value)} /></div>
+            <div className="settings-note"><Bell size={17}/><span>Email delivery also requires a configured email integration. Transactional emails such as account invitations and password resets follow the backend mail configuration independently.</span></div>
           </div>}
 
           {section === 'integrations' && <div className="settings-fields">
@@ -126,7 +131,7 @@ export function SettingsPage() {
         </section>
       </div>
 
-      <div className="settings-savebar"><span>{dirty ? 'You have unsaved changes.' : `Updated ${updatedLabel}`}</span><button className="button button--primary" type="button" onClick={() => void save()} disabled={!dirty || saving || loading}>{saving ? <LoaderCircle size={15} className="spin" /> : <Save size={15}/>} {saving ? 'Saving…' : 'Save changes'}</button></div>
+      <div className="settings-savebar"><span>{dirty ? 'You have unsaved changes.' : `Updated ${updatedLabel}`}</span><button className="button button--primary" type="button" onClick={() => void save()} disabled={!dirty || saving || loading || (enablingMaintenance && !confirmMaintenance)}>{saving ? <LoaderCircle size={15} className="spin" /> : <Save size={15}/>} {saving ? 'Saving…' : 'Save changes'}</button></div>
     </>}
   </div>;
 }

@@ -19,6 +19,7 @@
 .settings-row{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:4px 0}
 .settings-row b,.settings-field>span{display:block;font-size:12px;font-weight:700;color:#263246}
 .settings-row p{font-size:11px;line-height:1.55;color:var(--muted);max-width:620px;margin:5px 0 0}
+.settings-confirm-maintenance{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border:1px solid #f0d5a5;border-radius:9px;background:#fff9ed;color:#82560f;font-size:11px;line-height:1.5}.settings-confirm-maintenance input{margin:2px 0 0;accent-color:#b77812}
 .settings-switch{width:42px;height:24px;padding:3px;border:0;border-radius:99px;background:#c5ccd6;flex:none;transition:background .18s ease}
 .settings-switch span{display:block;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #16233a35;transition:transform .18s ease}
 .settings-switch.is-on{background:#2458d3}.settings-switch.is-on span{transform:translateX(18px)}.settings-switch:disabled{opacity:.55;cursor:not-allowed}
