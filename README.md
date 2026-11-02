@@ -17,7 +17,7 @@ The API origin is selected at build time:
 - `main` production builds use `.env.production`, which points to the Contabo CeHR API at `https://cehr-api.vickybestelecom.com`.
 - Local development reads `.env` or can use `.env.example` as a starting point. The local backend default is `http://localhost:8141`.
 
-Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site, builds with `--mode staging`, sets the Render backend URL explicitly, and rewrites application routes to `index.html`. Production builds use `npm ci && npm run build`; the Vite production mode selects the Contabo CeHR API. Environment variables configured by the hosting service take precedence over the committed env files.
+Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site, pins the Render backend URL in its build command, builds with `--mode staging`, and rewrites application routes to `index.html`. Production builds use `npm ci && npm run build`; the Vite production mode selects the Contabo CeHR API. Hosting environment variables can override `.env` files, so production must keep `VITE_API_BASE_URL` set to the Contabo CeHR API.
 
 Environment values are embedded into the built frontend. Rebuild and redeploy after changing the API origin. The backend endpoint contract and wiring status are documented in [SUPER_ADMIN_API_CONTRACT.md](SUPER_ADMIN_API_CONTRACT.md).
 
