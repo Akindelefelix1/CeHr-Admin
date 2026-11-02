@@ -1,5 +1,12 @@
 # CeHR Control
 
+
+PS C:\Users\akind\Desktop\New-CeHR>
+PS C:\Users\akind\Desktop\New-CeHR-BE>
+access the Organization and BE folders from here for all end to wiring
+
+
+
 Super-admin interface for managing the CeHR platform. Authentication, organizations, administrator access, billing, support, feature flags, and broadcasts use a typed API boundary. Without `VITE_API_BASE_URL`, the project runs in labelled UI-preview mode.
 
 ## API environments and deployment
@@ -7,10 +14,10 @@ Super-admin interface for managing the CeHR platform. Authentication, organizati
 The API origin is selected at build time:
 
 - `staging` deploys to Render and reads `.env.staging`, which points to `https://new-cehr-be-bkla.onrender.com`.
-- `main` production builds use `.env.production`, which points to the Contabo API at `https://cehr-api.vickybestelecom.com`.
+- `main` production builds use `.env.production`, which points to the CeHR backend at `https://new-cehr-be-bkla.onrender.com`.
 - Local development reads `.env` or can use `.env.example` as a starting point. The local backend default is `http://localhost:8141`.
 
-Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site and rewrites application routes to `index.html`. Production builds for Contabo use `npm ci && npm run build`; the Vite production mode selects the Contabo API. Environment variables configured by the hosting service take precedence over the committed env files.
+Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site and rewrites application routes to `index.html`. Production builds use `npm ci && npm run build`; the Vite production mode selects the CeHR backend API. Environment variables configured by the hosting service take precedence over the committed env files.
 
 Environment values are embedded into the built frontend. Rebuild and redeploy after changing the API origin. The backend endpoint contract and wiring status are documented in [SUPER_ADMIN_API_CONTRACT.md](SUPER_ADMIN_API_CONTRACT.md).
 
