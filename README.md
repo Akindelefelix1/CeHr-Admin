@@ -14,10 +14,10 @@ Super-admin interface for managing the CeHR platform. Authentication, organizati
 The API origin is selected at build time:
 
 - `staging` deploys to Render and reads `.env.staging`, which points to `https://new-cehr-be-bkla.onrender.com`.
-- `main` production builds use `.env.production`, which points to the CeHR backend at `https://new-cehr-be-bkla.onrender.com`.
+- `main` production builds use `.env.production`, which points to the Contabo CeHR API at `https://cehr-api.vickybestelecom.com`.
 - Local development reads `.env` or can use `.env.example` as a starting point. The local backend default is `http://localhost:8141`.
 
-Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site and rewrites application routes to `index.html`. Production builds use `npm ci && npm run build`; the Vite production mode selects the CeHR backend API. Environment variables configured by the hosting service take precedence over the committed env files.
+Render's [render.yaml](render.yaml) deploys only the `staging` branch as a static site, builds with `--mode staging`, sets the Render backend URL explicitly, and rewrites application routes to `index.html`. Production builds use `npm ci && npm run build`; the Vite production mode selects the Contabo CeHR API. Environment variables configured by the hosting service take precedence over the committed env files.
 
 Environment values are embedded into the built frontend. Rebuild and redeploy after changing the API origin. The backend endpoint contract and wiring status are documented in [SUPER_ADMIN_API_CONTRACT.md](SUPER_ADMIN_API_CONTRACT.md).
 
