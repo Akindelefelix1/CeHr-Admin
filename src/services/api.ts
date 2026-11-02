@@ -1,4 +1,8 @@
-const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const isRenderAdminHost = window.location.hostname.toLowerCase() === 'cehr-admin.onrender.com';
+const configuredApiBaseUrl = isRenderAdminHost
+  ? 'https://new-cehr-be-bkla.onrender.com'
+  : import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = String(configuredApiBaseUrl).replace(/\/$/, '');
 const TOKEN_KEY = 'cehr_super_admin_access_token';
 const ADMIN_KEY = 'cehr_super_admin_identity';
 const API_CACHE_PREFIX = 'cehr_super_admin_cache:';
