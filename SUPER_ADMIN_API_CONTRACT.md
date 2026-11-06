@@ -21,17 +21,21 @@ All protected routes below use the platform-admin bearer token. Route definition
 | `POST` | `/super-admin/auth/login`, `/auth/change-password` | Login and forced password change |
 | `GET`, `POST`, `PATCH`, `DELETE` | `/organizations`, `/organizations/:id`, `/organizations/:id/status`, `/organizations/:id/archive/*`, `/organizations/:id/subscription`, `/organizations/:id/trial` | Directory, details, creation, suspension, archive, subscription and trial controls |
 | `GET`, `POST`, `PATCH`, `DELETE` | `/admins`, `/admins/:id` | Admin access management |
+| `GET`, `PATCH` | `/settings` | Persisted maintenance, security, broadcast, and integration settings |
 | `GET` | `/audit-logs`, `/billing`, `/analytics`, `/dashboard`, `/plans`, `/features` | Platform reporting and configuration |
 | `POST`, `PATCH` | `/plans`, `/plans/:id`, `/features`, `/features/:id` | Plan and feature management |
 | `GET`, `PUT`, `DELETE` | `/features/:id/organizations`, `/features/:id/organizations/:organizationId` | Per-organization feature overrides |
 | `POST` | `/notifications/broadcast` | Organization broadcasts |
 | `GET`, `POST`, `PATCH` | `/support/tickets*`, `/support/analytics` | Support queue, replies, notes, assignment and ticket actions |
 
-The broadcast body contains `organizationIds` (`"all"` or an ID array), `subject`, `message`, and `channel`. The backend sends email via its existing mail service and returns a sent count.
+The broadcast body contains `organizationIds` (`"all"` or an ID array), `subject`, `message`, and `channel`. The response reports in-app/email delivery counts separately; email-only broadcasts are rejected when the platform setting or mail transport is unavailable, and email-plus-in-app broadcasts fall back to in-app delivery.
 
 ## Deployment requirements
 
 - Set `SUPER_ADMIN_JWT_SECRET`, `SUPER_ADMIN_BOOTSTRAP_EMAIL`, and `SUPER_ADMIN_BOOTSTRAP_PASSWORD` on the backend. Keep credentials in the host's secret store.
 - Allow the deployed superadmin origin in backend `CORS_ORIGIN`.
 - Apply the backend Prisma migrations when deploying the BE.
+- Platform settings are stored in the `PlatformSettings` table. Deploy `New-CeHR-BE/prisma/migrations/20261102090000_platform_settings` before using the settings page.
+- Maintenance mode returns HTTP 503 for organization API routes while leaving `/health`, `/docs`, and `/super-admin/*` available. Session duration applies to new super-admin sign-ins; audit retention is enforced by filtering and cleanup; disabling broadcast email blocks email-only broadcasts while preserving in-app delivery when requested.
+- Integration status reports whether required backend environment values are configured. It never returns API tokens or provider secrets; update those values in the backend host environment.
 - The Render staging Swagger document was checked on 28 October 2026 and exposes 31 `/super-admin/*` routes, including login, organizations, dashboard, audit logs, and support. Authenticated login and protected data calls still require valid bootstrap credentials and should be checked after deployment.
