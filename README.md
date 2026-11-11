@@ -6,6 +6,9 @@ PS C:\Users\akind\Desktop\New-CeHR-BE>
 access the Organization and BE folders from here for all end to wiring
 
 
+merge every commits on the staging branche tothe main branch, so that github stays updated on both branhes in allthe repo
+
+
 
 Super-admin interface for managing the CeHR platform. Authentication, organizations, administrator access, billing, support, feature flags, and broadcasts use a typed API boundary. Without `VITE_API_BASE_URL`, the project runs in labelled UI-preview mode.
 
